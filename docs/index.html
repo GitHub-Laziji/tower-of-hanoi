@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower of Hanoi</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #app {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .view {
+            border-radius: 4px;
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .box {
+            background: #409EFF;
+            border: 1px solid #a0cfff;
+            border-radius: 4px;
+            margin-top: 0px;
+        }
+
+        .col {
+            display: flex;
+            flex-direction: column;
+            justify-content: end;
+            align-items: center;
+            position: relative;
+            margin-right: 10px;
+        }
+
+        .col_l {
+            position: absolute;
+            height: 100%;
+            top: 0;
+            background: #c77802;
+            z-index: -1;
+        }
+
+        .col_- {
+            height: 10px;
+            background: #c77802;
+            border-radius: 4px;
+        }
+
+        .btn {
+            width: 100px;
+            display: flex;
+            justify-content: center;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="view">
+            <div style="padding: 10px;display: flex;justify-content: space-between;">
+                <div class="btn" @click="start(3)">简单</div>
+                <div class="btn" @click="start(5)">中等</div>
+                <div class="btn" @click="start(7)">困难</div>
+            </div>
+            <div style="display: flex;padding: 10px;border-top: 1px solid #E4E7ED;">
+                <div class="col" :style="{height:h*(n+2.5)+'px'}" @drop="drop($event,'a')" @dragover.prevent
+                    @dragenter.prevent>
+                    <div v-for="(item,i) of map.a" class="box" :draggable="status=='RUNNING'&&i==0"
+                        @dragstart="dragstart($event,'a')" :style="{width: maxW-dW*(n-item.value)+'px',height: h+'px'}">
+                    </div>
+                    <div class="col_l" :style="{width:h/2+'px', left: `calc(50% - ${h/4}px)`}"></div>
+                    <div class="col_-" :style="{width:maxW+dW+'px',height:h/2+'px'}"></div>
+                </div>
+                <div class="col" :style="{height:h*(n+2.5)+'px'}" @drop="drop($event,'b')" @dragover.prevent
+                    @dragenter.prevent>
+                    <div v-for="(item,i) of map.b" class="box" :draggable="status=='RUNNING'&&i==0"
+                        @dragstart="dragstart($event,'b')" :style="{width: maxW-dW*(n-item.value)+'px',height: h+'px'}">
+                    </div>
+                    <div class="col_l" :style="{width:h/2+'px', left: `calc(50% - ${h/4}px)`}"></div>
+                    <div class="col_-" :style="{width:maxW+dW+'px',height:h/2+'px'}"></div>
+                </div>
+                <div class="col" :style="{height:h*(n+2.5)+'px'}" @drop="drop($event,'c')" @dragover.prevent
+                    @dragenter.prevent>
+                    <div v-for="(item,i) of map.c" class="box" :draggable="status=='RUNNING'&&i==0"
+                        @dragstart="dragstart($event,'c')" :style="{width: maxW-dW*(n-item.value)+'px',height: h+'px'}">
+                    </div>
+                    <div class="col_l" :style="{width:h/2+'px', left: `calc(50% - ${h/4}px)`}"></div>
+                    <div class="col_-" :style="{width:maxW+dW+'px',height:h/2+'px'}"></div>
+                </div>
+            </div>
+            <div style="padding: 10px;border-top: 1px solid #E4E7ED;display: flex;justify-content: space-between;">
+                <div style="width: 150px;">移动步数：{{step}}</div>
+                <div style="width: 150px;" v-if="bestStep">最佳成绩：{{bestStep}}</div>
+                <div style="width: 150px;" v-else>无最佳成绩</div>
+            </div>
+        </div>
+    </div>
+    <script src="./lib/vue@3.2.47.global.min.js"></script>
+    <script>
+        const app = Vue.createApp({
+            data() {
+                return {
+                    map: {
+                        a: [],
+                        b: [],
+                        c: []
+                    },
+                    h: 40,
+                    maxW: 120,
+                    minW: 60,
+                    dW: 30,
+                    status: "INIT",
+                    n: 3,
+                    step: 0,
+                    bestStep: 0
+                }
+            },
+            mounted() {
+                this.start(3);
+            },
+            methods: {
+                start(n) {
+                    this.n = n;
+                    this.map.a = [];
+                    this.map.b = [];
+                    this.map.c = [];
+                    this.dW = this.n <= 1 ? 0 : ((this.maxW - this.minW) / (this.n - 1));
+                    for (let i = 1; i <= this.n; i++) {
+                        this.map.a.push({ value: i });
+                    }
+                    this.step = 0;
+                    this.bestStep = Number(localStorage.getItem("bestStep." + n) || 0);
+                    this.status = "RUNNING";
+                },
+                dragstart(e, p) {
+                    e.dataTransfer.setData('from', p);
+                },
+                drop(e, p) {
+                    let from = e.dataTransfer.getData('from');
+                    if (from == p) {
+                        return;
+                    }
+                    if (this.map[p].length == 0 || this.map[p][0].value > this.map[from][0].value) {
+                        this.map[p].unshift(this.map[from].shift());
+                        this.step++;
+                        if (this.map.c.length == this.n) {
+                            this.status = "WIN";
+                            if (!this.bestStep || this.step < this.bestStep) {
+                                this.bestStep = this.step;
+                                localStorage.setItem("bestStep." + this.n, this.step);
+                            }
+                            setTimeout(() => {
+                                alert("完成，移动步数：" + this.step);
+                            }, 0);
+                        }
+                    }
+                }
+            }
+        });
+        app.mount("#app");
+    </script>
+</body>
+
+</html>
